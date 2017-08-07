@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Bootstrap 101 Template</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
+        <style type="text/css">
+          body {
+            padding-top: 40px;
+            padding-bottom: 40px;
+            background-color: #eee;
+          }
+
+          .form-details {
+            max-width: 330px;
+            padding: 15px;
+            margin: 0 auto;
+          }
+          .form-details .form-details-heading,
+          .form-details .checkbox {
+            margin-bottom: 10px;
+          }
+          .form-details .checkbox {
+            font-weight: normal;
+          }
+          .form-details .form-control {
+            position: relative;
+            height: auto;
+            padding: 10px;
+            font-size: 16px;
+          }
+          .form-details .form-control:focus {
+            z-index: 2;
+          }
+        </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+    </head>
+    <body>
+        <script type="text/javascript">
+            // in any production system,
+            // session id should be retrieved from the backend as a part
+            // of authentication/authorization process
+            function getSessionId() {
+                return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+                    s4() + '-' + s4() + s4() + s4();
+            }
+
+            function s4() {
+                return Math.floor((1 + Math.random()) * 0x10000)
+                    .toString(16)
+                    .substring(1);
+            }
+
+            var app = angular.module("formReporter", []); 
+            app.controller("formController", function($scope, $http, $window) {
+                var appWindow = angular.element($window);
+                var _this = this;
+
+                this.height = $window.innerHeight;
+                this.width = $window.innerWidth;
+                this.startTime = undefined;
+                this.sessionId = getSessionId();
+
+                this.copyPaste = function(event) { 
+                    $http.post('http://localhost:8080/copyAndPaste', {
+                        formId: event.target.id,
+                        sessionId: this.sessionId
+                    });
+                }
+
+                this.inputStart = function(event) {
+                    if (this.startTime === undefined) {
+                        this.startTime = event.timeStamp;
+                    }
+                }
+
+                this.submit = function(event) {
+                    $http.post('http://localhost:8080/submit', {
+                        // we have millis, we want seconds, that's why / 1000
+                        time: Math.floor((event.timeStamp - this.startTime) / 1000),
+                        sessionId: this.sessionId
+                    });
+                }
+                
+                appWindow.bind('resize', function () {
+                    $http.post('http://localhost:8080/resize', {
+                        resizeFrom: {
+                            height: _this.height,
+                            width: _this.width
+                        },
+                        resizeTo: {
+                            height: $window.innerHeight,
+                            width: $window.innerWidth
+                        },
+                        sessionId: _this.sessionId
+                    });
+                    // "Assume only one resize occurs"
+                    appWindow.unbind('resize')
+                });
+            });
+        </script> 
+
+        <div ng-app="formReporter" class="container">
+
+          <form class="form-details" ng-controller="formController as formCtrl" method="post"
+          ng-submit="formCtrl.submit($event)" (window:resize)=formCtrl.onResize($event)>
+
+            <h2 class="form-details-heading">Details</h2>
+
+            <label for="inputEmail" class="sr-only">Email address</label>
+            <input ng-keyUp="formCtrl.inputStart($event)" ng-copy="formCtrl.copyPaste($event)"
+            ng-paste="formCtrl.copyPaste($event)" type="email" id="inputEmail" class="form-control" 
+            placeholder="Email address" required autofocus>
+
+            <label for="inputCardNumber" class="sr-only">Card Number</label>
+            <input ng-keyUp="formCtrl.inputStart($event)" ng-copy="formCtrl.copyPaste($event)"
+            ng-paste="formCtrl.copyPaste($event)" type="text" id="inputCardNumber" class="form-control" 
+            placeholder="Card Number" required>
+
+            <label for="inputCVV" class="sr-only">CVV</label>
+            <input ng-keyUp="formCtrl.inputStart($event)" ng-copy="formCtrl.copyPaste($event)"
+            ng-paste="formCtrl.copyPaste($event)" type="text" id="inputCVV" class="form-control" 
+            placeholder="Security Code" required>
+
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" value="agree"> Agree to Terms
+              </label>
+            </div>
+
+            <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+          </form>
+
+        </div> <!-- /container -->
+
+    </body>
+</html>
